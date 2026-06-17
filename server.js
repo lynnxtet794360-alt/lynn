@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const path = require("path");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,15 +11,17 @@ const PORT = process.env.PORT || 3000;
 const ACCESS_SECRET = "access_secret_123";
 const REFRESH_SECRET = "refresh_secret_123";
 
+// ================= MIDDLEWARE =================
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
-// DB
+// ================= DATABASE =================
 mongoose.connect(process.env.MONGO_URL)
-.then(() => console.log("DB Connected ✅"))
-.catch(err => console.log("DB Error ❌", err.message));
+  .then(() => console.log("DB Connected ✅"))
+  .catch(err => console.log("DB Error ❌", err.message));
 
-// USER MODEL
+// ================= USER MODEL =================
 const User = mongoose.model("User", {
   username: String,
   password: String,
@@ -26,17 +29,17 @@ const User = mongoose.model("User", {
   refreshToken: String
 });
 
-// ===================== HOME PAGE =====================
+// ================= HOME =================
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// ===================== DASHBOARD PAGE =====================
+// ================= DASHBOARD =================
 app.get("/dashboard.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-// REGISTER
+// ================= REGISTER =================
 app.post("/register", async (req, res) => {
   const { username, password } = req.body;
 
@@ -50,7 +53,7 @@ app.post("/register", async (req, res) => {
   res.json({ success: true, message: "Registered ✅" });
 });
 
-// LOGIN
+// ================= LOGIN (COOKIE VERSION) =================
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
@@ -63,7 +66,7 @@ app.post("/login", async (req, res) => {
   const accessToken = jwt.sign(
     { id: user._id, role: user.role },
     ACCESS_SECRET,
-    { expiresIn: "1m" }
+    { expiresIn: "15m" }
   );
 
   const refreshToken = jwt.sign(
@@ -75,18 +78,31 @@ app.post("/login", async (req, res) => {
   user.refreshToken = refreshToken;
   await user.save();
 
-  res.json({
-    success: true,
-    accessToken,
-    refreshToken
+  // 🍪 COOKIE SET
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: false, // 👉 Render မှာ deploy လုပ်ရင် true ပြောင်း
+    sameSite: "lax",
+    maxAge: 15 * 60 * 1000
   });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
+
+  res.json({ success: true, message: "Login success ✅" });
 });
 
-// AUTH
+// ================= AUTH =================
 function auth(req, res, next) {
-  const token = req.headers.authorization;
+  const token = req.cookies.accessToken;
 
-  if (!token) return res.json({ success: false });
+  if (!token) {
+    return res.json({ success: false, message: "No token ❌" });
+  }
 
   try {
     req.user = jwt.verify(token, ACCESS_SECRET);
@@ -96,57 +112,26 @@ function auth(req, res, next) {
   }
 }
 
-// REFRESH TOKEN
-app.post("/refresh", async (req, res) => {
-  const { refreshToken } = req.body;
-
-  if (!refreshToken) return res.json({ success: false });
-
-  try {
-    const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
-
-    const user = await User.findById(decoded.id);
-
-    if (!user || user.refreshToken !== refreshToken) {
-      return res.json({ success: false });
-    }
-
-    const newAccessToken = jwt.sign(
-      { id: user._id, role: user.role },
-      ACCESS_SECRET,
-      { expiresIn: "1m" }
-    );
-
-    res.json({
-      success: true,
-      accessToken: newAccessToken
-    });
-
-  } catch {
-    res.json({ success: false });
-  }
-});
-
-// LOGOUT
-app.post("/logout", async (req, res) => {
-  const { refreshToken } = req.body;
-
-  const user = await User.findOne({ refreshToken });
-
-  if (user) {
-    user.refreshToken = null;
-    await user.save();
-  }
-
-  res.json({ success: true });
-});
-
-// PROFILE
+// ================= PROFILE =================
 app.get("/profile", auth, (req, res) => {
   res.json({ success: true, user: req.user });
 });
 
-// START SERVER
+// ================= USERS =================
+app.get("/users", auth, async (req, res) => {
+  const users = await User.find();
+  res.json(users);
+});
+
+// ================= LOGOUT =================
+app.post("/logout", (req, res) => {
+  res.clearCookie("accessToken");
+  res.clearCookie("refreshToken");
+
+  res.json({ success: true, message: "Logged out ✅" });
+});
+
+// ================= START SERVER =================
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
