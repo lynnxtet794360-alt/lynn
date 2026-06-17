@@ -1,32 +1,68 @@
-async function login() {
+async function register() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
 
-    let username = document.getElementById("username").value;
-    let password = document.getElementById("password").value;
-
-    const res = await fetch("/login", {
+    const res = await fetch("/register", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            username,
-            password
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
     });
 
     const data = await res.json();
 
     document.getElementById("msg").innerText = data.message;
+    document.getElementById("msg").style.color = data.success ? "green" : "red";
+}
 
-    if(data.success){
-        document.getElementById("msg").style.color = "green";
 
-        localStorage.setItem(
-            "token",
-            data.token
-        );
+async function login() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
 
-    }else{
-        document.getElementById("msg").style.color = "red";
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    document.getElementById("msg").innerText = data.message;
+    document.getElementById("msg").style.color = data.success ? "green" : "red";
+
+    if (data.success) {
+        localStorage.setItem("token", data.token);
     }
+}
+
+
+function logout() {
+    localStorage.removeItem("token");
+    document.getElementById("msg").innerText = "Logged out ✅";
+}
+
+
+async function profile() {
+    const res = await fetch("/profile", {
+        headers: {
+            Authorization: localStorage.getItem("token")
+        }
+    });
+
+    const data = await res.json();
+
+    document.getElementById("msg").innerText = JSON.stringify(data, null, 2);
+}
+
+
+async function users() {
+    const res = await fetch("/users", {
+        headers: {
+            Authorization: localStorage.getItem("token")
+        }
+    });
+
+    const data = await res.json();
+
+    document.getElementById("msg").innerText = JSON.stringify(data, null, 2);
 }

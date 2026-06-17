@@ -5,57 +5,37 @@ const jwt = require("jsonwebtoken");
 
 const app = express();
 
-// =====================
-// CONFIG
-// =====================
+// ================= CONFIG =================
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = "mysecret123";
 
-// =====================
-// MIDDLEWARE
-// =====================
+// ================= MIDDLEWARE =================
 app.use(express.json());
-app.use(express.static("."));
+app.use(express.static("public")); // safer for deploy
 
-// =====================
-// DB CONNECT
-// =====================
-mongoose.connect(
-  "mongodb+srv://aungarkarminn_db_user:abc12345@cluster0.chuojxk.mongodb.net/loginDB?retryWrites=true&w=majority&appName=Cluster0"
-)
+// ================= DB CONNECT =================
+mongoose.connect(process.env.MONGO_URL)
 .then(() => console.log("DB Connected ✅"))
-.catch(err => console.log("DB Error ❌", err.message));
+.catch(err => console.log("DB Error ❌", err));
 
-// =====================
-// USER MODEL
-// =====================
-const UserSchema = new mongoose.Schema({
+// ================= MODEL =================
+const User = mongoose.model("User", {
   username: String,
   password: String,
   role: { type: String, default: "user" }
 });
 
-const User = mongoose.model("User", UserSchema);
-
-// =====================
-// REGISTER
-// =====================
+// ================= REGISTER =================
 app.post("/register", async (req, res) => {
   try {
     const { username, password } = req.body;
 
     const exists = await User.findOne({ username });
-    if (exists) {
-      return res.json({ success: false, message: "User exists ❌" });
-    }
+    if (exists) return res.json({ success: false, message: "User exists ❌" });
 
-    const hashed = await bcrypt.hash(password, 10);
+    const hash = await bcrypt.hash(password, 10);
 
-    await new User({
-      username,
-      password: hashed,
-      role: "user"
-    }).save();
+    await User.create({ username, password: hash });
 
     res.json({ success: true, message: "Registered ✅" });
 
@@ -64,53 +44,35 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// =====================
-// LOGIN
-// =====================
+// ================= LOGIN =================
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
 
     const user = await User.findOne({ username });
-    if (!user) {
-      return res.json({ success: false, message: "User not found ❌" });
-    }
+    if (!user) return res.json({ success: false, message: "User not found ❌" });
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.json({ success: false, message: "Wrong password ❌" });
-    }
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) return res.json({ success: false, message: "Wrong password ❌" });
 
     const token = jwt.sign(
-      {
-        id: user._id,
-        username: user.username,
-        role: user.role
-      },
+      { id: user._id, username: user.username, role: user.role },
       JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    res.json({
-      success: true,
-      message: "Login success ✅",
-      token
-    });
+    res.json({ success: true, message: "Login success ✅", token });
 
   } catch (err) {
     res.json({ success: false, message: "Login Error ❌" });
   }
 });
 
-// =====================
-// AUTH MIDDLEWARE
-// =====================
+// ================= AUTH =================
 function auth(req, res, next) {
   const token = req.headers.authorization;
 
-  if (!token) {
-    return res.json({ success: false, message: "No token ❌" });
-  }
+  if (!token) return res.json({ success: false, message: "No token ❌" });
 
   try {
     req.user = jwt.verify(token, JWT_SECRET);
@@ -120,45 +82,18 @@ function auth(req, res, next) {
   }
 }
 
-// =====================
-// PROFILE
-// =====================
+// ================= PROFILE =================
 app.get("/profile", auth, (req, res) => {
-  res.json({
-    success: true,
-    user: req.user
-  });
+  res.json({ success: true, user: req.user });
 });
 
-// =====================
-// ADMIN MIDDLEWARE
-// =====================
-function admin(req, res, next) {
-  if (req.user.role !== "admin") {
-    return res.json({ success: false, message: "Admin only ❌" });
-  }
-  next();
-}
-
-// =====================
-// GET USERS (ADMIN)
-// =====================
-app.get("/users", auth, admin, async (req, res) => {
+// ================= USERS =================
+app.get("/users", auth, async (req, res) => {
   const users = await User.find();
   res.json(users);
 });
 
-// =====================
-// DELETE USER (ADMIN)
-// =====================
-app.delete("/user/:id", auth, admin, async (req, res) => {
-  await User.findByIdAndDelete(req.params.id);
-  res.json({ success: true, message: "Deleted ✅" });
-});
-
-// =====================
-// START SERVER
-// =====================
+// ================= START =================
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server running on port " + PORT);
 });
