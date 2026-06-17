@@ -6,7 +6,9 @@ const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = "mysecret123";
+
+const ACCESS_SECRET = "access_secret_123";
+const REFRESH_SECRET = "refresh_secret_123";
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -16,11 +18,12 @@ mongoose.connect(process.env.MONGO_URL)
 .then(() => console.log("DB Connected ✅"))
 .catch(err => console.log("DB Error ❌", err.message));
 
-// MODEL
+// USER MODEL
 const User = mongoose.model("User", {
   username: String,
   password: String,
-  role: { type: String, default: "user" }
+  role: { type: String, default: "user" },
+  refreshToken: String
 });
 
 // REGISTER
@@ -31,7 +34,11 @@ app.post("/register", async (req, res) => {
   if (exists) return res.json({ success: false, message: "User exists ❌" });
 
   const hash = await bcrypt.hash(password, 10);
-  await User.create({ username, password: hash });
+
+  await User.create({
+    username,
+    password: hash
+  });
 
   res.json({ success: true, message: "Registered ✅" });
 });
@@ -46,65 +53,92 @@ app.post("/login", async (req, res) => {
   const ok = await bcrypt.compare(password, user.password);
   if (!ok) return res.json({ success: false, message: "Wrong password ❌" });
 
-  const token = jwt.sign(
-    { id: user._id, username: user.username, role: user.role },
-    JWT_SECRET,
-    { expiresIn: "1h" }
+  const accessToken = jwt.sign(
+    { id: user._id, role: user.role },
+    ACCESS_SECRET,
+    { expiresIn: "1m" } // short life
   );
 
-  res.json({ success: true, message: "Login success ✅", token });
+  const refreshToken = jwt.sign(
+    { id: user._id },
+    REFRESH_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  user.refreshToken = refreshToken;
+  await user.save();
+
+  res.json({
+    success: true,
+    accessToken,
+    refreshToken
+  });
 });
 
-// AUTH
+// AUTH MIDDLEWARE
 function auth(req, res, next) {
   const token = req.headers.authorization;
-  if (!token) return res.json({ success: false, message: "No token ❌" });
+
+  if (!token) return res.json({ success: false });
 
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    req.user = jwt.verify(token, ACCESS_SECRET);
     next();
   } catch {
-    res.json({ success: false, message: "Invalid token ❌" });
+    return res.json({ success: false, expired: true });
   }
 }
+
+// REFRESH TOKEN
+app.post("/refresh", async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.json({ success: false });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
+
+    const user = await User.findById(decoded.id);
+
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.json({ success: false });
+    }
+
+    const newAccessToken = jwt.sign(
+      { id: user._id, role: user.role },
+      ACCESS_SECRET,
+      { expiresIn: "1m" }
+    );
+
+    res.json({
+      success: true,
+      accessToken: newAccessToken
+    });
+
+  } catch {
+    res.json({ success: false });
+  }
+});
+
+// LOGOUT
+app.post("/logout", async (req, res) => {
+  const { refreshToken } = req.body;
+
+  const user = await User.findOne({ refreshToken });
+
+  if (user) {
+    user.refreshToken = null;
+    await user.save();
+  }
+
+  res.json({ success: true });
+});
 
 // PROFILE
 app.get("/profile", auth, (req, res) => {
   res.json({ success: true, user: req.user });
-});
-
-// ADMIN PROTECT
-app.get("/admin", auth, (req, res) => {
-  if (req.user.role !== "admin") {
-    return res.send("Access Denied ❌");
-  }
-
-  res.sendFile(path.join(__dirname, "public", "admin.html"));
-});
-
-// USERS (ADMIN ONLY)
-app.get("/users", auth, async (req, res) => {
-  if (req.user.role !== "admin") {
-    return res.json({ success: false, message: "Admin only ❌" });
-  }
-
-  const users = await User.find();
-  res.json(users);
-});
-
-// DELETE USER
-app.delete("/user/:id", auth, async (req, res) => {
-  if (req.user.role !== "admin") {
-    return res.json({ success: false, message: "Admin only ❌" });
-  }
-
-  await User.findByIdAndDelete(req.params.id);
-  res.json({ success: true, message: "Deleted ✅" });
-});
-
-// HOME
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 app.listen(PORT, () => {
