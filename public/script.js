@@ -57,15 +57,3 @@ async function users() {
     const data = await res.json();
     alert(JSON.stringify(data, null, 2));
 }
-
-async function deleteUser(id) {
-    const res = await fetch("/user/" + id, {
-        method: "DELETE",
-        headers: {
-            Authorization: localStorage.getItem("token")
-        }
-    });
-
-    const data = await res.json();
-    alert(data.message);
-}
