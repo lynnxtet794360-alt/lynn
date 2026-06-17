@@ -2,76 +2,67 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const path = require("path");
 
 const app = express();
 
-// ================= CONFIG =================
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = "mysecret123";
 
-// ================= MIDDLEWARE =================
+// middleware
 app.use(express.json());
-app.use(express.static("public")); // safer for deploy
 
-// ================= DB CONNECT =================
+// 🔥 FIX: correct static folder
+app.use(express.static(path.join(__dirname, "public")));
+
+// DB
 mongoose.connect(process.env.MONGO_URL)
 .then(() => console.log("DB Connected ✅"))
-.catch(err => console.log("DB Error ❌", err));
+.catch(err => console.log(err));
 
-// ================= MODEL =================
+// model
 const User = mongoose.model("User", {
   username: String,
   password: String,
   role: { type: String, default: "user" }
 });
 
-// ================= REGISTER =================
+// register
 app.post("/register", async (req, res) => {
-  try {
-    const { username, password } = req.body;
+  const { username, password } = req.body;
 
-    const exists = await User.findOne({ username });
-    if (exists) return res.json({ success: false, message: "User exists ❌" });
+  const exists = await User.findOne({ username });
+  if (exists) return res.json({ success: false, message: "User exists ❌" });
 
-    const hash = await bcrypt.hash(password, 10);
+  const hash = await bcrypt.hash(password, 10);
 
-    await User.create({ username, password: hash });
+  await User.create({ username, password: hash });
 
-    res.json({ success: true, message: "Registered ✅" });
-
-  } catch (err) {
-    res.json({ success: false, message: "Register Error ❌" });
-  }
+  res.json({ success: true, message: "Registered ✅" });
 });
 
-// ================= LOGIN =================
+// login
 app.post("/login", async (req, res) => {
-  try {
-    const { username, password } = req.body;
+  const { username, password } = req.body;
 
-    const user = await User.findOne({ username });
-    if (!user) return res.json({ success: false, message: "User not found ❌" });
+  const user = await User.findOne({ username });
+  if (!user) return res.json({ success: false, message: "User not found ❌" });
 
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.json({ success: false, message: "Wrong password ❌" });
+  const ok = await bcrypt.compare(password, user.password);
+  if (!ok) return res.json({ success: false, message: "Wrong password ❌" });
 
-    const token = jwt.sign(
-      { id: user._id, username: user.username, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+  const token = jwt.sign(
+    { id: user._id, username: user.username, role: user.role },
+    JWT_SECRET,
+    { expiresIn: "1h" }
+  );
 
-    res.json({ success: true, message: "Login success ✅", token });
-
-  } catch (err) {
-    res.json({ success: false, message: "Login Error ❌" });
-  }
+  res.json({ success: true, message: "Login success ✅", token });
 });
 
-// ================= AUTH =================
+// auth
 function auth(req, res, next) {
   const token = req.headers.authorization;
-
   if (!token) return res.json({ success: false, message: "No token ❌" });
 
   try {
@@ -82,18 +73,22 @@ function auth(req, res, next) {
   }
 }
 
-// ================= PROFILE =================
+// profile
 app.get("/profile", auth, (req, res) => {
   res.json({ success: true, user: req.user });
 });
 
-// ================= USERS =================
+// users
 app.get("/users", auth, async (req, res) => {
   const users = await User.find();
   res.json(users);
 });
 
-// ================= START =================
+// 🔥 FIX: homepage route
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
