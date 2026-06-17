@@ -1,15 +1,32 @@
-function login() {
+async function login() {
 
-    let user = document.getElementById("username").value;
-    let pass = document.getElementById("password").value;
+    let username = document.getElementById("username").value;
+    let password = document.getElementById("password").value;
 
-    console.log("clicked");
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            username,
+            password
+        })
+    });
 
-    if(user === "admin" && pass === "1234") {
-        document.getElementById("msg").innerText = "Login Success ✅";
+    const data = await res.json();
+
+    document.getElementById("msg").innerText = data.message;
+
+    if(data.success){
         document.getElementById("msg").style.color = "green";
-    } else {
-        document.getElementById("msg").innerText = "Wrong Username or Password ❌";
+
+        localStorage.setItem(
+            "token",
+            data.token
+        );
+
+    }else{
         document.getElementById("msg").style.color = "red";
     }
 }
