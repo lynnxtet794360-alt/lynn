@@ -1,45 +1,70 @@
-const token = localStorage.getItem("accessToken");
+let token = localStorage.getItem("accessToken");
 
 if (!token) {
   window.location.href = "/";
 }
 
-// PROFILE
+// ================= PROFILE =================
 async function loadProfile() {
-  const res = await fetch("/profile", {
-    headers: {
-      Authorization: token
+  try {
+    const res = await fetch("/profile", {
+      headers: {
+        Authorization: token
+      }
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      logout();
+      return;
     }
-  });
 
-  const data = await res.json();
-
-  if (data.success) {
     document.getElementById("userInfo").innerText =
       `ID: ${data.user.id} | Role: ${data.user.role}`;
+
+  } catch (err) {
+    console.log(err);
+    logout();
   }
 }
 
-// STATS (simple demo)
+// ================= STATS =================
 async function loadStats() {
-  const res = await fetch("/users", {
-    headers: {
-      Authorization: token
+  try {
+    const res = await fetch("/users", {
+      headers: {
+        Authorization: token
+      }
+    });
+
+    const data = await res.json();
+
+    if (!Array.isArray(data)) {
+      document.getElementById("totalUsers").innerText = 0;
+      return;
     }
-  });
 
-  const data = await res.json();
+    document.getElementById("totalUsers").innerText = data.length;
 
-  document.getElementById("totalUsers").innerText = data.length || 0;
+  } catch (err) {
+    console.log(err);
+    document.getElementById("totalUsers").innerText = 0;
+  }
 }
 
-// LOGOUT
+// ================= LOGOUT =================
 function logout() {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   window.location.href = "/";
 }
 
-// auto load
+// ================= MENU TOGGLE =================
+function toggleMenu() {
+  document.getElementById("sidebar").classList.toggle("active");
+}
+
+// ================= AUTO LOAD =================
 loadProfile();
 loadStats();

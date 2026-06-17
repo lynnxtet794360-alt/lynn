@@ -1,8 +1,27 @@
 body {
   margin: 0;
   font-family: Arial;
-  display: flex;
   background: #f4f6f9;
+  display: flex;
+}
+
+/* TOP BAR (mobile only) */
+.topbar {
+  display: none;
+  width: 100%;
+  background: #111827;
+  color: white;
+  padding: 10px;
+  align-items: center;
+}
+
+.menu-btn {
+  font-size: 20px;
+  margin-right: 10px;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
 }
 
 /* SIDEBAR */
@@ -12,10 +31,7 @@ body {
   background: #111827;
   color: white;
   padding: 20px;
-}
-
-.sidebar h2 {
-  margin-bottom: 30px;
+  transition: 0.3s;
 }
 
 .sidebar button {
@@ -24,26 +40,48 @@ body {
   margin: 10px 0;
   padding: 10px;
   background: #1f2937;
-  border: none;
   color: white;
-  cursor: pointer;
+  border: none;
   border-radius: 6px;
-}
-
-.sidebar button:hover {
-  background: #374151;
 }
 
 /* MAIN */
 .main {
   flex: 1;
-  padding: 30px;
+  padding: 20px;
 }
 
 .card {
   background: white;
   padding: 20px;
-  margin: 20px 0;
+  margin: 10px 0;
   border-radius: 10px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* 📱 MOBILE RESPONSIVE */
+@media (max-width: 768px) {
+
+  body {
+    flex-direction: column;
+  }
+
+  .topbar {
+    display: flex;
+  }
+
+  .sidebar {
+    position: absolute;
+    left: -250px;
+    top: 50px;
+    height: 100%;
+  }
+
+  .sidebar.active {
+    left: 0;
+  }
+
+  .main {
+    padding: 10px;
+  }
 }

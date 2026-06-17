@@ -8,17 +8,23 @@
 
 <body>
 
-<div class="sidebar">
-  <h2>My App</h2>
+<!-- TOP BAR (mobile menu button) -->
+<div class="topbar">
+  <button class="menu-btn" onclick="toggleMenu()">☰</button>
+  <h2>Dashboard</h2>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar" class="sidebar">
+  <h3>My App</h3>
 
   <button onclick="loadProfile()">Profile</button>
   <button onclick="loadStats()">Stats</button>
   <button onclick="logout()">Logout</button>
 </div>
 
+<!-- MAIN -->
 <div class="main">
-  <h1>Dashboard</h1>
-
   <div class="card">
     <h3>User Info</h3>
     <p id="userInfo">Loading...</p>
