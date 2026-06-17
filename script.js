@@ -1,57 +1,15 @@
-async function register() {
-  const username = u.value;
-  const password = p.value;
+function login() {
 
-  const res = await fetch("/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password })
-  });
+    let user = document.getElementById("username").value;
+    let pass = document.getElementById("password").value;
 
-  const data = await res.json();
-  msg.innerText = data.message;
-}
+    console.log("clicked");
 
-async function login() {
-  const username = u.value;
-  const password = p.value;
-
-  const res = await fetch("/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password })
-  });
-
-  const data = await res.json();
-
-  msg.innerText = data.message;
-
-  if (data.token) {
-    localStorage.setItem("token", data.token);
-  }
-}
-
-async function profile() {
-  const res = await fetch("/profile", {
-    headers: {
-      Authorization: localStorage.getItem("token")
+    if(user === "admin" && pass === "1234") {
+        document.getElementById("msg").innerText = "Login Success ✅";
+        document.getElementById("msg").style.color = "green";
+    } else {
+        document.getElementById("msg").innerText = "Wrong Username or Password ❌";
+        document.getElementById("msg").style.color = "red";
     }
-  });
-
-  msg.innerText = JSON.stringify(await res.json(), null, 2);
-}
-
-async function users() {
-  const res = await fetch("/users", {
-    headers: {
-      Authorization: localStorage.getItem("token")
-    }
-  });
-
-  msg.innerText = JSON.stringify(await res.json(), null, 2);
-}
-
-function logout() {
-  localStorage.removeItem("token");
-  msg.innerText = "Logged out ";
 }

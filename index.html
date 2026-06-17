@@ -1,25 +1,25 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Login System</title>
+    <meta charset="UTF-8">
+    <title>Login System</title>
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<h2>Login System</h2>
+<div class="container">
 
-<input id="u" placeholder="username">
-<input id="p" placeholder="password">
-<p id="msg"></p>
+    <h2>Login Form</h2>
 
-<br><br>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
 
-<button onclick="register()">Register</button>
-<button onclick="login()">Login</button>
-<button onclick="profile()">Profile</button>
-<button onclick="users()">Admin Users</button>
-<button onclick="logout()">Logout</button>
+    <button onclick="login()">Login</button>
 
-<p id="msg"></p>
+    <p id="msg"></p>
+
+</div>
 
 <script src="script.js"></script>
 
