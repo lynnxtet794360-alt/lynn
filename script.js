@@ -53,5 +53,5 @@ async function users() {
 
 function logout() {
   localStorage.removeItem("token");
-  msg.innerText = "Logged out ✅";
+  msg.innerText = "Logged out ";
 }
