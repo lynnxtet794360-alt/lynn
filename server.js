@@ -26,6 +26,16 @@ const User = mongoose.model("User", {
   refreshToken: String
 });
 
+// ===================== HOME PAGE =====================
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// ===================== DASHBOARD PAGE =====================
+app.get("/dashboard.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+});
+
 // REGISTER
 app.post("/register", async (req, res) => {
   const { username, password } = req.body;
@@ -35,10 +45,7 @@ app.post("/register", async (req, res) => {
 
   const hash = await bcrypt.hash(password, 10);
 
-  await User.create({
-    username,
-    password: hash
-  });
+  await User.create({ username, password: hash });
 
   res.json({ success: true, message: "Registered ✅" });
 });
@@ -56,7 +63,7 @@ app.post("/login", async (req, res) => {
   const accessToken = jwt.sign(
     { id: user._id, role: user.role },
     ACCESS_SECRET,
-    { expiresIn: "1m" } // short life
+    { expiresIn: "1m" }
   );
 
   const refreshToken = jwt.sign(
@@ -75,7 +82,7 @@ app.post("/login", async (req, res) => {
   });
 });
 
-// AUTH MIDDLEWARE
+// AUTH
 function auth(req, res, next) {
   const token = req.headers.authorization;
 
@@ -93,9 +100,7 @@ function auth(req, res, next) {
 app.post("/refresh", async (req, res) => {
   const { refreshToken } = req.body;
 
-  if (!refreshToken) {
-    return res.json({ success: false });
-  }
+  if (!refreshToken) return res.json({ success: false });
 
   try {
     const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
@@ -141,6 +146,7 @@ app.get("/profile", auth, (req, res) => {
   res.json({ success: true, user: req.user });
 });
 
+// START SERVER
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
