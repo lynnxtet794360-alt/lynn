@@ -3,14 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <title>Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
 </head>
+
 <body>
 
-<h2>Welcome Dashboard 🎉</h2>
+<div class="sidebar">
+  <h2>My App</h2>
 
-<p id="userInfo"></p>
+  <button onclick="loadProfile()">Profile</button>
+  <button onclick="loadStats()">Stats</button>
+  <button onclick="logout()">Logout</button>
+</div>
 
-<button onclick="logout()">Logout</button>
+<div class="main">
+  <h1>Dashboard</h1>
+
+  <div class="card">
+    <h3>User Info</h3>
+    <p id="userInfo">Loading...</p>
+  </div>
+
+  <div class="card">
+    <h3>Stats</h3>
+    <p>Total Users: <span id="totalUsers">-</span></p>
+  </div>
+</div>
 
 <script src="dashboard.js"></script>
 

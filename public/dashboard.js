@@ -4,6 +4,7 @@ if (!token) {
   window.location.href = "/";
 }
 
+// PROFILE
 async function loadProfile() {
   const res = await fetch("/profile", {
     headers: {
@@ -13,14 +14,32 @@ async function loadProfile() {
 
   const data = await res.json();
 
-  document.getElementById("userInfo").innerText =
-    "User ID: " + data.user.id + " | Role: " + data.user.role;
+  if (data.success) {
+    document.getElementById("userInfo").innerText =
+      `ID: ${data.user.id} | Role: ${data.user.role}`;
+  }
 }
 
-loadProfile();
+// STATS (simple demo)
+async function loadStats() {
+  const res = await fetch("/users", {
+    headers: {
+      Authorization: token
+    }
+  });
 
+  const data = await res.json();
+
+  document.getElementById("totalUsers").innerText = data.length || 0;
+}
+
+// LOGOUT
 function logout() {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   window.location.href = "/";
 }
+
+// auto load
+loadProfile();
+loadStats();
