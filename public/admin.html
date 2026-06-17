@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+</head>
+<body>
+
+<h2>Admin Dashboard</h2>
+
+<button onclick="loadUsers()">Load Users</button>
+
+<table border="1">
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Role</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+
+<script>
+if (!localStorage.getItem("token")) {
+  window.location.href = "/";
+}
+
+async function loadUsers() {
+  const res = await fetch("/users", {
+    headers: {
+      Authorization: localStorage.getItem("token")
+    }
+  });
+
+  const users = await res.json();
+
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+
+  users.forEach(u => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${u.username}</td>
+        <td>${u.role}</td>
+        <td>
+          <button onclick="deleteUser('${u._id}')">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function deleteUser(id) {
+  await fetch("/user/" + id, {
+    method: "DELETE",
+    headers: {
+      Authorization: localStorage.getItem("token")
+    }
+  });
+
+  loadUsers();
+}
+</script>
+
+</body>
+</html>

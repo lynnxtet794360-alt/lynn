@@ -16,7 +16,7 @@ mongoose.connect(process.env.MONGO_URL)
 .then(() => console.log("DB Connected ✅"))
 .catch(err => console.log("DB Error ❌", err.message));
 
-// USER
+// MODEL
 const User = mongoose.model("User", {
   username: String,
   password: String,
@@ -31,7 +31,6 @@ app.post("/register", async (req, res) => {
   if (exists) return res.json({ success: false, message: "User exists ❌" });
 
   const hash = await bcrypt.hash(password, 10);
-
   await User.create({ username, password: hash });
 
   res.json({ success: true, message: "Registered ✅" });
@@ -74,27 +73,33 @@ app.get("/profile", auth, (req, res) => {
   res.json({ success: true, user: req.user });
 });
 
-// USERS (admin)
+// ADMIN PROTECT
+app.get("/admin", auth, (req, res) => {
+  if (req.user.role !== "admin") {
+    return res.send("Access Denied ❌");
+  }
+
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+// USERS (ADMIN ONLY)
 app.get("/users", auth, async (req, res) => {
+  if (req.user.role !== "admin") {
+    return res.json({ success: false, message: "Admin only ❌" });
+  }
+
   const users = await User.find();
   res.json(users);
 });
 
-// CHANGE PASSWORD
-app.post("/change-password", auth, async (req, res) => {
-  const { oldPassword, newPassword } = req.body;
+// DELETE USER
+app.delete("/user/:id", auth, async (req, res) => {
+  if (req.user.role !== "admin") {
+    return res.json({ success: false, message: "Admin only ❌" });
+  }
 
-  const user = await User.findById(req.user.id);
-
-  const ok = await bcrypt.compare(oldPassword, user.password);
-  if (!ok) return res.json({ success: false, message: "Old password wrong ❌" });
-
-  const hash = await bcrypt.hash(newPassword, 10);
-
-  user.password = hash;
-  await user.save();
-
-  res.json({ success: true, message: "Password changed ✅" });
+  await User.findByIdAndDelete(req.params.id);
+  res.json({ success: true, message: "Deleted ✅" });
 });
 
 // HOME
