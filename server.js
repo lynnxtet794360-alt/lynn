@@ -5,11 +5,9 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 
 const app = express();
-
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = "mysecret123";
 
-// middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -18,7 +16,7 @@ mongoose.connect(process.env.MONGO_URL)
 .then(() => console.log("DB Connected ✅"))
 .catch(err => console.log("DB Error ❌", err.message));
 
-// USER MODEL
+// USER
 const User = mongoose.model("User", {
   username: String,
   password: String,
@@ -76,29 +74,27 @@ app.get("/profile", auth, (req, res) => {
   res.json({ success: true, user: req.user });
 });
 
-// ADMIN CHECK
-function admin(req, res, next) {
-  if (req.user.role !== "admin") {
-    return res.json({ success: false, message: "Admin only ❌" });
-  }
-  next();
-}
-
-// USERS
-app.get("/users", auth, admin, async (req, res) => {
+// USERS (admin)
+app.get("/users", auth, async (req, res) => {
   const users = await User.find();
   res.json(users);
 });
 
-// DELETE USER
-app.delete("/user/:id", auth, admin, async (req, res) => {
-  await User.findByIdAndDelete(req.params.id);
-  res.json({ success: true, message: "Deleted ✅" });
-});
+// CHANGE PASSWORD
+app.post("/change-password", auth, async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
 
-// ADMIN PAGE
-app.get("/admin", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "admin.html"));
+  const user = await User.findById(req.user.id);
+
+  const ok = await bcrypt.compare(oldPassword, user.password);
+  if (!ok) return res.json({ success: false, message: "Old password wrong ❌" });
+
+  const hash = await bcrypt.hash(newPassword, 10);
+
+  user.password = hash;
+  await user.save();
+
+  res.json({ success: true, message: "Password changed ✅" });
 });
 
 // HOME
