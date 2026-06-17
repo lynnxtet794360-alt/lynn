@@ -11,23 +11,21 @@ const JWT_SECRET = "mysecret123";
 
 // middleware
 app.use(express.json());
-
-// 🔥 FIX: correct static folder
 app.use(express.static(path.join(__dirname, "public")));
 
-// DB
+// DB CONNECT
 mongoose.connect(process.env.MONGO_URL)
 .then(() => console.log("DB Connected ✅"))
-.catch(err => console.log(err));
+.catch(err => console.log("DB Error ❌", err));
 
-// model
+// USER MODEL
 const User = mongoose.model("User", {
   username: String,
   password: String,
   role: { type: String, default: "user" }
 });
 
-// register
+// REGISTER
 app.post("/register", async (req, res) => {
   const { username, password } = req.body;
 
@@ -41,7 +39,7 @@ app.post("/register", async (req, res) => {
   res.json({ success: true, message: "Registered ✅" });
 });
 
-// login
+// LOGIN
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
@@ -60,10 +58,13 @@ app.post("/login", async (req, res) => {
   res.json({ success: true, message: "Login success ✅", token });
 });
 
-// auth
+// AUTH
 function auth(req, res, next) {
   const token = req.headers.authorization;
-  if (!token) return res.json({ success: false, message: "No token ❌" });
+
+  if (!token) {
+    return res.json({ success: false, message: "No token ❌" });
+  }
 
   try {
     req.user = jwt.verify(token, JWT_SECRET);
@@ -73,22 +74,23 @@ function auth(req, res, next) {
   }
 }
 
-// profile
+// PROFILE
 app.get("/profile", auth, (req, res) => {
   res.json({ success: true, user: req.user });
 });
 
-// users
+// USERS
 app.get("/users", auth, async (req, res) => {
   const users = await User.find();
   res.json(users);
 });
 
-// 🔥 FIX: homepage route
+// HOME
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// START
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
