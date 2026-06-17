@@ -13,10 +13,10 @@ const JWT_SECRET = "mysecret123";
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// DB
+// DB CONNECT (FIXED)
 mongoose.connect(process.env.MONGO_URL)
 .then(() => console.log("DB Connected ✅"))
-.catch(err => console.log("DB Error ❌", err));
+.catch(err => console.log("DB Error ❌", err.message));
 
 // USER MODEL
 const User = mongoose.model("User", {
@@ -58,7 +58,7 @@ app.post("/login", async (req, res) => {
   res.json({ success: true, message: "Login success ✅", token });
 });
 
-// AUTH
+// AUTH MIDDLEWARE
 function auth(req, res, next) {
   const token = req.headers.authorization;
   if (!token) return res.json({ success: false, message: "No token ❌" });
@@ -84,13 +84,13 @@ function admin(req, res, next) {
   next();
 }
 
-// GET USERS (ADMIN ONLY)
+// USERS (ADMIN ONLY)
 app.get("/users", auth, admin, async (req, res) => {
   const users = await User.find();
   res.json(users);
 });
 
-// DELETE USER (ADMIN ONLY)
+// DELETE USER
 app.delete("/user/:id", auth, admin, async (req, res) => {
   await User.findByIdAndDelete(req.params.id);
   res.json({ success: true, message: "Deleted ✅" });
@@ -101,6 +101,7 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// START SERVER
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
