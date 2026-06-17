@@ -13,7 +13,7 @@ const JWT_SECRET = "mysecret123";
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// DB CONNECT
+// DB
 mongoose.connect(process.env.MONGO_URL)
 .then(() => console.log("DB Connected ✅"))
 .catch(err => console.log("DB Error ❌", err));
@@ -61,10 +61,7 @@ app.post("/login", async (req, res) => {
 // AUTH
 function auth(req, res, next) {
   const token = req.headers.authorization;
-
-  if (!token) {
-    return res.json({ success: false, message: "No token ❌" });
-  }
+  if (!token) return res.json({ success: false, message: "No token ❌" });
 
   try {
     req.user = jwt.verify(token, JWT_SECRET);
@@ -79,10 +76,24 @@ app.get("/profile", auth, (req, res) => {
   res.json({ success: true, user: req.user });
 });
 
-// USERS
-app.get("/users", auth, async (req, res) => {
+// ADMIN CHECK
+function admin(req, res, next) {
+  if (req.user.role !== "admin") {
+    return res.json({ success: false, message: "Admin only ❌" });
+  }
+  next();
+}
+
+// GET USERS (ADMIN ONLY)
+app.get("/users", auth, admin, async (req, res) => {
   const users = await User.find();
   res.json(users);
+});
+
+// DELETE USER (ADMIN ONLY)
+app.delete("/user/:id", auth, admin, async (req, res) => {
+  await User.findByIdAndDelete(req.params.id);
+  res.json({ success: true, message: "Deleted ✅" });
 });
 
 // HOME
@@ -90,7 +101,6 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// START
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
