@@ -1,26 +1,66 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Login System</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+```
+<link rel="stylesheet" href="style.css">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+
+<title>Login</title>
+```
+
 </head>
 
 <body>
 
-<div class="container">
+<nav class="navbar">
 
-  <h2>Login System 🔐</h2>
+```
+<div class="nav-left">
+    <h2 class="logo">Facebook</h2>
 
-  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Password">
+    <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" placeholder="Search">
+    </div>
+</div>
 
-  <div class="buttons">
-    <button onclick="register()">Register</button>
-    <button onclick="login()">Login</button>
-  </div>
+<div class="nav-right">
+    <i class="fa-solid fa-house"></i>
+    <i class="fa-solid fa-bell"></i>
+    <i class="fa-solid fa-user"></i>
+</div>
+```
 
-  <p id="msg"></p>
+</nav>
+
+<div class="login-container">
+
+```
+<div class="login-card">
+
+    <h2>Login or Sign up</h2>
+
+    <input id="username" placeholder="Username">
+
+    <input id="password"
+    type="password"
+    placeholder="Password">
+
+    <div class="buttons">
+        <button onclick="register()">Register</button>
+        <button onclick="login()">Login</button>
+    </div>
+
+    <p id="msg"></p>
+
+</div>
+```
 
 </div>
 

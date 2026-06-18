@@ -1,32 +1,28 @@
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const path = require("path");
-const cookieParser = require("cookie-parser");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const ACCESS_SECRET = "access_secret_123";
-const REFRESH_SECRET = "refresh_secret_123";
 
-// ================= MIDDLEWARE =================
 app.use(express.json());
-app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
-// ================= DATABASE =================
+// DB
 mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log("DB Connected ✅"))
   .catch(err => console.log("DB Error ❌", err.message));
 
-// ================= USER MODEL =================
+// MODEL
 const User = mongoose.model("User", {
   username: String,
   password: String,
-  role: { type: String, default: "user" },
-  refreshToken: String
+  role: { type: String, default: "user" }
 });
 
 // ================= HOME =================
@@ -44,71 +40,59 @@ app.post("/register", async (req, res) => {
   const { username, password } = req.body;
 
   const exists = await User.findOne({ username });
-  if (exists) return res.json({ success: false, message: "User exists ❌" });
+  if (exists) {
+    return res.json({ success: false, message: "User exists ❌" });
+  }
 
   const hash = await bcrypt.hash(password, 10);
 
-  await User.create({ username, password: hash });
+  await User.create({
+    username,
+    password: hash,
+    role: "user"
+  });
 
-  res.json({ success: true, message: "Registered ✅" });
+  res.json({ success: true, message: "Registered" });
 });
 
-// ================= LOGIN (COOKIE VERSION) =================
+// ================= LOGIN =================
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
   const user = await User.findOne({ username });
-  if (!user) return res.json({ success: false, message: "User not found ❌" });
+  if (!user) {
+    return res.json({ success: false, message: "User not found" });
+  }
 
   const ok = await bcrypt.compare(password, user.password);
-  if (!ok) return res.json({ success: false, message: "Wrong password ❌" });
+  if (!ok) {
+    return res.json({ success: false, message: "Wrong password" });
+  }
 
-  const accessToken = jwt.sign(
+  const token = jwt.sign(
     { id: user._id, role: user.role },
     ACCESS_SECRET,
     { expiresIn: "15m" }
   );
 
-  const refreshToken = jwt.sign(
-    { id: user._id },
-    REFRESH_SECRET,
-    { expiresIn: "7d" }
-  );
-
-  user.refreshToken = refreshToken;
-  await user.save();
-
-  // 🍪 COOKIE SET
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: false, // 👉 Render မှာ deploy လုပ်ရင် true ပြောင်း
-    sameSite: "lax",
-    maxAge: 15 * 60 * 1000
+  res.json({
+    success: true,
+    message: "Login success",
+    token
   });
-
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000
-  });
-
-  res.json({ success: true, message: "Login success ✅" });
 });
 
 // ================= AUTH =================
 function auth(req, res, next) {
-  const token = req.cookies.accessToken;
+  const token = req.headers.authorization;
 
-  if (!token) {
-    return res.json({ success: false, message: "No token ❌" });
-  }
+  if (!token) return res.json({ success: false });
 
   try {
     req.user = jwt.verify(token, ACCESS_SECRET);
     next();
   } catch {
-    return res.json({ success: false, expired: true });
+    return res.json({ success: false });
   }
 }
 
@@ -123,15 +107,21 @@ app.get("/users", auth, async (req, res) => {
   res.json(users);
 });
 
-// ================= LOGOUT =================
-app.post("/logout", (req, res) => {
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken");
-
-  res.json({ success: true, message: "Logged out ✅" });
-});
-
-// ================= START SERVER =================
+// ================= START =================
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
+});
+
+app.get("/profile", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    res.json({
+      success: true,
+      user
+    });
+
+  } catch (err) {
+    res.json({ success: false, message: "Error loading profile ❌" });
+  }
 });
